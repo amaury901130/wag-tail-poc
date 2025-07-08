@@ -6,3 +6,6 @@ whitenoise
 gunicorn==23.0.0
 django-storages[s3]
 wagtail-storages
+djangorestframework>=3.14.0
+djangorestframework-simplejwt>=5.2.0
+django-environ>=0.10.0
