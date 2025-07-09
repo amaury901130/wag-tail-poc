@@ -1,0 +1,65 @@
+[tool.black]
+line-length = 127
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+    # directories
+    \.git
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+    | migrations
+    | myenv
+    | static
+    | static_compiled
+    | static_src
+    | media
+    | fixtures
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 127
+known_django = "django"
+known_wagtail = "wagtail"
+known_first_party = "wagtailDemo"
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "DJANGO", "WAGTAIL", "FIRSTPARTY", "LOCALFOLDER"]
+skip_glob = ["**/migrations/*.py", "myenv/**", "static/**", "static_compiled/**", "static_src/**", "media/**", "fixtures/**"]
+
+[tool.coverage.run]
+source = "."
+omit = [
+    "*/migrations/*",
+    "*/myenv/*",
+    "*/static/*",
+    "*/static_compiled/*", 
+    "*/static_src/*",
+    "*/media/*",
+    "*/fixtures/*",
+    "manage.py",
+    "*/settings/*",
+    "*/wsgi.py",
+    "*/asgi.py",
+    "*/__pycache__/*",
+    "*/tests/*",
+    ".pytest_cache/*"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]

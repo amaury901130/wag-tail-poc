@@ -1,0 +1,211 @@
+{% extends "wagtailadmin/base.html" %}
+{% load wagtailadmin_tags %}
+
+{% block titletag %}{{ title }}{% endblock %}
+
+{% block content %}
+    <header class="header">
+        <div class="row">
+            <div class="left">
+                <div class="col">
+                    <h1 class="header-title">
+                        {% icon name="user" %}
+                        {{ title }}
+                    </h1>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="nice-padding">
+        <!-- User Statistics Cards -->
+        <div class="row row-flush">
+            <div class="col3">
+                <div class="card">
+                    <div class="card-body">
+                        <h3>{{ stats.total_users }}</h3>
+                        <p>Total Users</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col3">
+                <div class="card">
+                    <div class="card-body">
+                        <h3 style="color: green;">{{ stats.verified_users }}</h3>
+                        <p>Verified Users</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col3">
+                <div class="card">
+                    <div class="card-body">
+                        <h3 style="color: orange;">{{ stats.unverified_users }}</h3>
+                        <p>Unverified Users</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col3">
+                <div class="card">
+                    <div class="card-body">
+                        <h3>{{ stats.verification_rate }}%</h3>
+                        <p>Verification Rate</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Registration Statistics -->
+        <div class="row row-flush">
+            <div class="col6">
+                <div class="card">
+                    <div class="card-body">
+                        <h3>Recent Registrations</h3>
+                        <ul class="listing">
+                            <li>This week: <strong>{{ stats.users_this_week }}</strong></li>
+                            <li>This month: <strong>{{ stats.users_this_month }}</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col6">
+                <div class="card">
+                    <div class="card-body">
+                        <h3>OTP Statistics</h3>
+                        <ul class="listing">
+                            <li>Total OTPs: <strong>{{ otp_stats.total_otps }}</strong></li>
+                            <li>Success Rate: <strong>{{ otp_stats.success_rate }}%</strong></li>
+                            <li>Today: <strong>{{ otp_stats.otps_today }}</strong></li>
+                            <li>This week: <strong>{{ otp_stats.otps_this_week }}</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Users Table -->
+        <div class="row">
+            <div class="col12">
+                <div class="card">
+                    <div class="card-body">
+                        <h3>Recent Users</h3>
+                        {% if recent_users %}
+                            <table class="listing">
+                                <thead>
+                                    <tr>
+                                        <th>Username</th>
+                                        <th>Phone Number</th>
+                                        <th>Status</th>
+                                        <th>Joined</th>
+                                        <th>Last Login</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for user in recent_users %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ user.username }}</strong>
+                                                {% if user.first_name or user.last_name %}
+                                                    <br><small>{{ user.get_full_name }}</small>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if user.phone_number %}
+                                                    {{ user.phone_number }}
+                                                    {% if user.is_phone_verified %}
+                                                        <span style="color: green;" title="Verified">✓</span>
+                                                    {% else %}
+                                                        <span style="color: red;" title="Not verified">✗</span>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <em>No phone</em>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if user.is_superuser %}
+                                                    <span style="color: purple;">Superuser</span>
+                                                {% elif user.is_staff %}
+                                                    <span style="color: blue;">Staff</span>
+                                                {% else %}
+                                                    <span style="color: gray;">User</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ user.date_joined|date:"M d, Y H:i" }}</td>
+                                            <td>
+                                                {% if user.last_login %}
+                                                    {{ user.last_login|date:"M d, Y H:i" }}
+                                                {% else %}
+                                                    <em>Never</em>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        {% else %}
+                            <p>No users found.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent OTP Activity -->
+        <div class="row">
+            <div class="col12">
+                <div class="card">
+                    <div class="card-body">
+                        <h3>Recent OTP Activity</h3>
+                        {% if recent_otps %}
+                            <table class="listing">
+                                <thead>
+                                    <tr>
+                                        <th>Phone Number</th>
+                                        <th>Code</th>
+                                        <th>Status</th>
+                                        <th>Created</th>
+                                        <th>Expires</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for otp in recent_otps %}
+                                        <tr>
+                                            <td>{{ otp.phone_number }}</td>
+                                            <td><code>{{ otp.code }}</code></td>
+                                            <td>
+                                                {% if otp.is_used %}
+                                                    <span style="color: green;">Used</span>
+                                                {% elif otp.is_valid %}
+                                                    <span style="color: blue;">Valid</span>
+                                                {% else %}
+                                                    <span style="color: red;">Expired</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ otp.created_at|date:"M d, Y H:i" }}</td>
+                                            <td>{{ otp.expires_at|date:"M d, Y H:i" }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        {% else %}
+                            <p>No OTP codes found.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="row">
+            <div class="col12">
+                <div class="card">
+                    <div class="card-body">
+                        <h3>Quick Actions</h3>
+                        <p>
+                            <a href="{% url 'users:api_docs' %}" class="button button-secondary" target="_blank">API Documentation</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

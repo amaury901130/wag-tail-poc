@@ -1,7 +1,8 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from wagtail.admin.panels import FieldPanel
+from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.snippets.models import register_snippet
+from wagtail import hooks
 
 from .models import User, OTPCode
 
@@ -55,3 +56,55 @@ class OTPCodeSnippet(OTPCode):
         proxy = True
         verbose_name = "OTP Code"
         verbose_name_plural = "OTP Codes"
+
+
+# Register User as a Wagtail snippet for easy management
+@register_snippet
+class UserSnippet(User):
+    """User as a Wagtail snippet"""
+    
+    panels = [
+        MultiFieldPanel([
+            FieldPanel("username"),
+            FieldPanel("first_name"),
+            FieldPanel("last_name"),
+            FieldPanel("email"),
+        ], heading="User Information"),
+        
+        MultiFieldPanel([
+            FieldPanel("phone_number"),
+            FieldPanel("is_phone_verified"),
+        ], heading="Phone Authentication"),
+        
+        MultiFieldPanel([
+            FieldPanel("is_active"),
+            FieldPanel("is_staff"),
+            FieldPanel("is_superuser"),
+        ], heading="Permissions"),
+    ]
+    
+    class Meta:
+        proxy = True
+        verbose_name = "User"
+        verbose_name_plural = "Users"
+
+
+# Add dashboard to admin menu
+@hooks.register('register_admin_menu_item')
+def register_user_dashboard_menu_item():
+    from wagtail.admin.menu import MenuItem
+    return MenuItem(
+        'User Dashboard', 
+        '/admin/user-management/dashboard/', 
+        icon_name='user',
+        order=99
+    )
+
+
+# Register admin URLs
+@hooks.register('register_admin_urls')
+def register_admin_urls():
+    from django.urls import path, include
+    return [
+        path('user-management/', include('wagtailDemo.users.admin_urls', namespace='users_admin')),
+    ]
