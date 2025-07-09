@@ -3,8 +3,10 @@ from rest_framework import status
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from unittest.mock import patch
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from ..models import OTPCode
+from ..services import SMSServiceError
 
 User = get_user_model()
 
@@ -44,7 +46,17 @@ class SendOTPAPITest(APITestCase):
                 'phone_number': self.valid_phone
             })
             
-            self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+            self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+            self.assertIn('error', response.data)
+    
+    def test_send_otp_sms_service_error(self):
+        """Test OTP sending when SMS service raises error"""
+        with patch('wagtailDemo.users.services.otp_service.send_otp', side_effect=SMSServiceError("Service error")):
+            response = self.client.post(self.url, {
+                'phone_number': self.valid_phone
+            })
+            
+            self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
             self.assertIn('error', response.data)
     
     def test_send_otp_invalidates_previous_codes(self):
@@ -179,23 +191,73 @@ class UserProfileAPITest(APITestCase):
         self.url = reverse('users:user_profile')
         self.user = User.objects.create_user(
             username="testuser",
-            phone_number="+1234567890"
+            phone_number="+1234567890",
+            first_name="John",
+            last_name="Doe"
         )
     
-    def test_user_profile_authenticated(self):
+    def test_user_profile_get_authenticated(self):
         """Test getting user profile when authenticated"""
         self.client.force_authenticate(user=self.user)
         
         response = self.client.get(self.url)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('user', response.data)
-        self.assertEqual(response.data['user']['phone_number'], self.user.phone_number)
+        self.assertEqual(response.data['phone_number'], self.user.phone_number)
     
-    def test_user_profile_unauthenticated(self):
+    def test_user_profile_get_unauthenticated(self):
         """Test getting user profile when not authenticated"""
         response = self.client.get(self.url)
         
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         # DRF returns 'detail' instead of 'error' for auth errors
         self.assertTrue('detail' in response.data or 'error' in response.data)
+    
+    def test_user_profile_update_authenticated(self):
+        """Test updating user profile when authenticated"""
+        self.client.force_authenticate(user=self.user)
+        
+        update_data = {
+            'first_name': 'Jane',
+            'last_name': 'Smith',
+            'email': 'jane.smith@example.com'
+        }
+        
+        response = self.client.patch(self.url, update_data)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Check user was updated
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.first_name, 'Jane')
+        self.assertEqual(self.user.last_name, 'Smith')
+        self.assertEqual(self.user.email, 'jane.smith@example.com')
+    
+    def test_user_profile_update_unauthenticated(self):
+        """Test updating user profile when not authenticated"""
+        response = self.client.patch(self.url, {'first_name': 'Jane'})
+        
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+    
+    def test_user_profile_invalid_email(self):
+        """Test updating user profile with invalid email"""
+        self.client.force_authenticate(user=self.user)
+        
+        response = self.client.patch(self.url, {'email': 'invalid-email'})
+        
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('email', response.data)
+    
+    def test_user_profile_jwt_token_authentication(self):
+        """Test user profile access with JWT token"""
+        # Generate JWT token
+        refresh = RefreshToken.for_user(self.user)
+        access_token = refresh.access_token
+        
+        # Use JWT token for authentication
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        
+        response = self.client.get(self.url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['phone_number'], self.user.phone_number)
