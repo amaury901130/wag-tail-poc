@@ -59,3 +59,37 @@ class IsSameUserOrReadOnly(permissions.BasePermission):
         
         # Write permissions only for the same user
         return obj == request.user
+    
+
+class IsAdminRole(permissions.BasePermission):
+    """
+    Permission to check if user has admin role.
+    """
+    def has_permission(self, request, view):
+        return (
+            request.user and 
+            request.user.is_authenticated and 
+            request.user.role == request.user.Role.ADMIN
+        )
+
+class IsModeratorOrAdmin(permissions.BasePermission):
+    """
+    Permission to check if user is moderator or admin.
+    """
+    def has_permission(self, request, view):
+        return (
+            request.user and 
+            request.user.is_authenticated and 
+            request.user.role in [request.user.Role.MODERATOR, request.user.Role.ADMIN]
+        )
+
+class CanManageUsers(permissions.BasePermission):
+    """
+    Permission for user management operations.
+    """
+    def has_permission(self, request, view):
+        return (
+            request.user and 
+            request.user.is_authenticated and 
+            request.user.role == request.user.Role.ADMIN
+        )

@@ -203,8 +203,7 @@ class UserProfileAPITest(APITestCase):
         response = self.client.get(self.url)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('user', response.data)
-        self.assertEqual(response.data['user']['phone_number'], self.user.phone_number)
+        self.assertEqual(response.data['phone_number'], self.user.phone_number)
     
     def test_user_profile_get_unauthenticated(self):
         """Test getting user profile when not authenticated"""
@@ -261,5 +260,4 @@ class UserProfileAPITest(APITestCase):
         response = self.client.get(self.url)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('user', response.data)
-        self.assertEqual(response.data['user']['phone_number'], self.user.phone_number)
+        self.assertEqual(response.data['phone_number'], self.user.phone_number)

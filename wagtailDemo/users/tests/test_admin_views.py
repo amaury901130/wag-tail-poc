@@ -19,8 +19,7 @@ class UserAdminViewsTest(TestCase):
         self.staff_user = User.objects.create_user(
             username='admin',
             phone_number='+1111111111',
-            is_staff=True,
-            is_superuser=True
+            role=User.Role.ADMIN  # Use role instead of is_staff/is_superuser
         )
         
         # Create some test users

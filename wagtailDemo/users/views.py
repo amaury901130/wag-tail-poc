@@ -1,4 +1,4 @@
-from rest_framework import status
+from rest_framework import status, generics, permissions
 from rest_framework.views import APIView
 from rest_framework.generics import RetrieveUpdateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -14,7 +14,12 @@ import logging
 from .models import OTPCode
 from .serializers import SendOTPSerializer, VerifyOTPSerializer, UserSerializer, UserProfileUpdateSerializer
 from .services import otp_service, SMSServiceError
-from .permissions import IsProfileOwner
+from .permissions import IsProfileOwner, IsAdminRole, CanManageUsers
+
+from .serializers import (
+    SendOTPSerializer, VerifyOTPSerializer, UserProfileSerializer, 
+    UserProfileUpdateSerializer, UserRoleUpdateSerializer
+)
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -196,14 +201,12 @@ class UserProfileView(RetrieveUpdateAPIView):
         """Return appropriate serializer class based on request method."""
         if self.request.method in ['PUT', 'PATCH']:
             return UserProfileUpdateSerializer
-        return UserSerializer
+        return UserProfileSerializer
     
     def get(self, request, *args, **kwargs):
         """Get current user profile."""
-        user_data = UserSerializer(request.user).data
-        return Response({
-            'user': user_data
-        }, status=status.HTTP_200_OK)
+        user_data = UserProfileSerializer(request.user).data
+        return Response(user_data, status=status.HTTP_200_OK)
     
     def put(self, request, *args, **kwargs):
         """Update user profile."""
@@ -229,8 +232,39 @@ class UserProfileView(RetrieveUpdateAPIView):
             'user': user_data
         }, status=status.HTTP_200_OK)
 
+class UserListView(generics.ListAPIView):
+    """List all users (Admin only)."""
+    queryset = User.objects.all()
+    serializer_class = UserProfileSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
 
+class UserRoleUpdateView(generics.UpdateAPIView):
+    """Update user role (Admin only)."""
+    queryset = User.objects.all()
+    serializer_class = UserRoleUpdateSerializer
+    permission_classes = [permissions.IsAuthenticated, CanManageUsers]
+    
+    def update(self, request, *args, **kwargs):
+        user = self.get_object()
+        serializer = self.get_serializer(user, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            # Prevent admin from removing their own admin role
+            if user == request.user and serializer.validated_data.get('role') != User.Role.ADMIN:
+                return Response({
+                    'error': 'You cannot remove your own admin role'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            serializer.save()
+            return Response({
+                'message': f'User role updated to {user.get_role_display()}',
+                'user': UserProfileSerializer(user).data
+            })
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 # Keep backward compatibility - create view instances
 send_otp = SendOTPView.as_view()
 verify_otp = VerifyOTPView.as_view()
 user_profile = UserProfileView.as_view()
+user_list = UserListView.as_view()
+user_role_update = UserRoleUpdateView.as_view()

@@ -147,6 +147,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 
+            'is_staff',
             'phone_number', 
             'username', 
             'first_name', 
@@ -154,12 +155,14 @@ class UserSerializer(serializers.ModelSerializer):
             'email',
             'is_phone_verified', 
             'date_joined',
-            'last_login'
+            'last_login',
+            'role'
         ]
         read_only_fields = [
             'id', 
             'username', 
             'phone_number',
+            'is_staff',
             'is_phone_verified', 
             'date_joined',
             'last_login'
@@ -243,3 +246,39 @@ class UserProfileUpdateSerializer(UserSerializer):
             )
         
         return attrs
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    role_display = serializers.CharField(source='get_role_display', read_only=True)
+    
+    class Meta:
+        model = User
+        fields = [
+            'id', 
+            'username', 
+            'is_staff', 
+            'phone_number', 
+            'is_phone_verified', 
+            'role', 
+            'role_display', 
+            'date_joined', 
+            'last_login'
+        ]
+        read_only_fields = [
+            'id', 
+            'is_staff', 
+            'phone_number', 
+            'is_phone_verified', 
+            'date_joined', 
+            'last_login'
+        ]
+
+# Admin-only serializer for role management
+class UserRoleUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['role']
+        
+    def validate_role(self, value):
+        if value not in [choice[0] for choice in User.Role.choices]:
+            raise serializers.ValidationError("Invalid role selected.")
+        return value

@@ -12,6 +12,10 @@ urlpatterns = [
     # User profile endpoints
     path('api/auth/profile/', views.UserProfileView.as_view(), name='user_profile'),
     
+    # Users endpoints
+    path('api/auth/users/', views.UserListView.as_view(), name='user_list'),
+    path('api/auth/users/<int:pk>/role/', views.UserRoleUpdateView.as_view(), name='update_user_role'),
+    
     # Documentation
     path('api/auth/docs/', api_documentation, name='api_docs'),
 ]
